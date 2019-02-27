@@ -134,34 +134,36 @@ func main() {
 		currentTime := time.Now()
 
 		for i, queueItem := range currentQueue.QueueContainers {
-			err, oldQueueObject := containsID(oldQueue.QueueContainers, queueItem.Queue.ID)
-			if err == nil {
-				if queueItem.Queue.Status == "Downloading" {
-					timeSinceLastSeen := currentTime.Sub(oldQueueObject.LastSeen)
-					if timeSinceLastSeen > config.WaitTime {
-						if oldQueueObject.Queue.Sizeleft == queueItem.Queue.Sizeleft {
-							log.Printf("Remove %s-%v:%v", oldQueueObject.Queue.Series.Title, oldQueueObject.Queue.Episode.SeasonNumber, oldQueueObject.Queue.Episode.EpisodeNumber)
-							removeFromSonarr(oldQueue, currentQueue, oldQueueObject)
+			if queueItem.Queue.Protocol == "torrent" {
+				err, oldQueueObject := containsID(oldQueue.QueueContainers, queueItem.Queue.ID)
+				if err == nil {
+					if queueItem.Queue.Status == "Downloading" {
+						timeSinceLastSeen := currentTime.Sub(oldQueueObject.LastSeen)
+						if timeSinceLastSeen > config.WaitTime {
+							if oldQueueObject.Queue.Sizeleft == queueItem.Queue.Sizeleft {
+								log.Printf("Remove %s-%v:%v", oldQueueObject.Queue.Series.Title, oldQueueObject.Queue.Episode.SeasonNumber, oldQueueObject.Queue.Episode.EpisodeNumber)
+								removeFromSonarr(oldQueue, currentQueue, oldQueueObject)
+								if err != nil {
+									log.Fatalf(err.Error())
+								}
+							} else {
+								//Torrent has progressed bump it's last time
+								log.Printf("Progress made on %s-%v:%v bumping last time", oldQueueObject.Queue.Series.Title, oldQueueObject.Queue.Episode.SeasonNumber, oldQueueObject.Queue.Episode.EpisodeNumber)
+								oldQueue.QueueContainers[i].LastSeen = currentTime
+							}
+						} else if timeSinceLastSeen > config.ZeroPercentTimeout && queueItem.Queue.Size == queueItem.Queue.Sizeleft {
+							log.Printf("0%% progress made on %s-%v:%v in 1 hour, removing", oldQueueObject.Queue.Series.Title, oldQueueObject.Queue.Episode.SeasonNumber, oldQueueObject.Queue.Episode.EpisodeNumber)
+							err = removeFromSonarr(oldQueue, currentQueue, oldQueueObject)
 							if err != nil {
 								log.Fatalf(err.Error())
 							}
 						} else {
-							//Torrent has progressed bump it's last time
-							log.Printf("Progress made on %s-%v:%v bumping last time", oldQueueObject.Queue.Series.Title, oldQueueObject.Queue.Episode.SeasonNumber, oldQueueObject.Queue.Episode.EpisodeNumber)
-							oldQueue.QueueContainers[i].LastSeen = currentTime
+							log.Printf("%s-%v:%v Lower than timeout, skipping", oldQueueObject.Queue.Series.Title, oldQueueObject.Queue.Episode.SeasonNumber, oldQueueObject.Queue.Episode.EpisodeNumber)
 						}
-					} else if timeSinceLastSeen > config.ZeroPercentTimeout && queueItem.Queue.Size == queueItem.Queue.Sizeleft {
-						log.Printf("0%% progress made on %s-%v:%v in 1 hour, removing", oldQueueObject.Queue.Series.Title, oldQueueObject.Queue.Episode.SeasonNumber, oldQueueObject.Queue.Episode.EpisodeNumber)
-						err = removeFromSonarr(oldQueue, currentQueue, oldQueueObject)
-						if err != nil {
-							log.Fatalf(err.Error())
-						}
-					} else {
-						log.Printf("%s-%v:%v Lower than timeout, skipping", oldQueueObject.Queue.Series.Title, oldQueueObject.Queue.Episode.SeasonNumber, oldQueueObject.Queue.Episode.EpisodeNumber)
 					}
+				} else {
+					oldQueue.QueueContainers = append(oldQueue.QueueContainers, queueItem)
 				}
-			} else {
-				oldQueue.QueueContainers = append(oldQueue.QueueContainers, queueItem)
 			}
 		}
 		log.Println("Queue file updated, saving to file...")
