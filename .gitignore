@@ -1,0 +1,4 @@
+*.exe
+config.json
+*.log
+old_queue.json
