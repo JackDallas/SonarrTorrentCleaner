@@ -152,7 +152,7 @@ func main() {
 								oldQueue.QueueContainers[i].LastSeen = currentTime
 							}
 						} else if timeSinceLastSeen > config.ZeroPercentTimeout && queueItem.Queue.Size == queueItem.Queue.Sizeleft {
-							log.Printf("0%% progress made on %s-%v:%v in 1 hour, removing", oldQueueObject.Queue.Series.Title, oldQueueObject.Queue.Episode.SeasonNumber, oldQueueObject.Queue.Episode.EpisodeNumber)
+							log.Printf("0%% progress made on %s-%v:%v in %s, removing", oldQueueObject.Queue.Series.Title, oldQueueObject.Queue.Episode.SeasonNumber, oldQueueObject.Queue.Episode.EpisodeNumber,config.ZeroPercentTimeout)
 							err = removeFromSonarr(oldQueue, currentQueue, oldQueueObject)
 							if err != nil {
 								log.Fatalf(err.Error())
