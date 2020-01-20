@@ -23,3 +23,10 @@ Simple executable to remove torrents and optionally blacklist them if they haven
     "Blacklist" : true
 }
 ```
+
+## Scheduling
+
+Currently this does not have a built in scheduler, on linux this is easy to do with cron (see below) on windows you have a few options [see here](https://stackoverflow.com/a/132975)
+
+`*/10 *  * * *   my_username  cd /home/my_username/TorrentCleaner/ && /home/my_username/TorrentCleaner/SonarrTorrentCleaner_lin`
+Will run TorrentCleaner every 10 minutes
