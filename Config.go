@@ -67,7 +67,7 @@ func LoadOrCreateConfig() (Config, error) {
 			if err != nil {
 				return config, err
 			}
-			return LoadOrCreateConfig()
+			panic("Default config created, please fill it out")
 		}
 		if err == ErrInvalidConfigFile {
 			return config, ErrInvalidConfigFile
