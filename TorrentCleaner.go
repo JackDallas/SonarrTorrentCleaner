@@ -49,6 +49,10 @@ func main() {
 			println("Looping through current queue")
 			//Loop the queue items
 			for _, currentQueueItem := range queue {
+				//Ignore Queued Items
+				if currentQueueItem.Status == "Queued" {
+					continue
+				}
 				// Check its a torrent
 				if currentQueueItem.Protocol == "torrent" {
 					println("Processing Item: " + currentQueueItem.Title + " [" + currentQueueItem.DownloadID + "]")
