@@ -1,32 +1,39 @@
 # Sonarr Torrent Cleaner
 
-Simple executable to remove torrents and optionally blacklist them if they haven't progressed in a set time period
+Simple executable to remove torrents and optionally blacklist them from Sonarr if they haven't progressed in a set time period
 
 ## Usage
 
-- Copy the provided `config.default.json` to `config.json` and set it up to your preference
-- Run the executable every x minutes using an external program such as cron (Built in scheduling coming soon) (Recommended time 15 minutes)
+- Run once to generate a default `config.yaml`
+- Fill out the config with your Sonarr details
+- Run the executable `SonarrTorrentCleaner(.exe)`
+- Use something like screen to allow it to continue running perpetually (service installer coming up)
 
 ## Config
 
-``` json
+``` yaml
 {
-    //Time to wait on a torrent that has made no progress before removing it (Time format: https://golang.org/pkg/time/#ParseDuration)
-    "WaitTime": "4h",
-    // Your Sonarr api key
-    "SonarrAPIKey": "xxxxxxxxxxxxxxxx",
-    // The address your Sonnarr install can be found at
-    "SonarrURL": "http://localhost",
-    // The amount of time to wait for a torrent to get past 0% before removing it
-    "ZeroPercentTimeout": "1h",
-    // Blacklist the torrent in Sonarr so it's not downloaded again (Time format: https://golang.org/pkg/time/#ParseDuration)
-    "Blacklist" : true
+    # How often to poll sonarr for changes
+    CheckTimeMinutes: 10
+    # Time to wait on a torrent that has made no progress before removing it 
+    NoProgressTimeoutMinutes: 30
+    # The address your Sonarr install can be found at
+    SonarrURL: http://localhost:8989
+    # Your Sonarr api key
+    SonarrAPIKey: "XXXXXXXXXXXXXXXXXXX"
+    # Blacklist the torrent in Sonarr so it's not downloaded again
+    Blacklist: true
 }
 ```
 
-## Scheduling
+## Run in screen
 
-Currently this does not have a built in scheduler, on linux this is easy to do with cron (see below) on windows you have a few options [see here](https://stackoverflow.com/a/132975)
+`screen -S SonarrTorrentCleaner`
+`./SonarrTorrentCleaner`
+`ctrl`+`shift`+`a`+`d`
 
-`*/10 *  * * *   my_username  cd /home/my_username/TorrentCleaner/ && /home/my_username/TorrentCleaner/SonarrTorrentCleaner_lin`
-Will run TorrentCleaner every 10 minutes
+## TODO
+
+- Auto releases
+- Snap package
+- Docker image
