@@ -1,7 +1,0 @@
-{
-    "WaitTime": "4h",
-    "SonarrAPIKey": "xxxxxxxxxxxxxxxx",
-    "SonarrURL": "http://localhost",
-    "ZeroPercentTimeout": "1h",
-    "Blacklist" : true
-}

@@ -1,0 +1,5 @@
+CheckTimeMinutes: 10
+NoProgressTimeoutMinutes: 30
+SonarrURL: http://localhost:8989
+SonarrAPIKey: ""
+Blacklist: true
