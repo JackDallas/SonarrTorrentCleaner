@@ -124,7 +124,9 @@ func main() {
 									} else {
 										// If the item has not progressed, check how long its been since it has
 										println("No item progress made, checking time changed against timeout")
-										if time.Since(prevQueueItem.LastChecked).Minutes() > float64(config.NoProgressTimeoutMinutes) {
+										timeSinceMinutes := time.Since(prevQueueItem.LastChecked).Minutes()
+										println("Time since Last Progress %f minutes, Timeout is set to %f", timeSinceMinutes, config.NoProgressTimeoutMinutes)
+										if timeSinceMinutes > config.NoProgressTimeoutMinutes {
 											println("Item being timed out, removing from queue and blacklisting torrent")
 											config.DeleteFromQueue(currentQueueItem.ID, true)
 											tx.Bucket(bucketName).Delete(itemID)

@@ -14,11 +14,11 @@ var (
 )
 
 type Config struct {
-	CheckTimeMinutes         int    `yaml:"CheckTimeMinutes"`
-	NoProgressTimeoutMinutes int    `yaml:"NoProgressTimeoutMinutes"`
-	SonarrURL                string `yaml:"SonarrURL"`
-	SonarrAPIKey             string `yaml:"SonarrAPIKey"`
-	Blacklist                bool   `yaml:"Blacklist"`
+	CheckTimeMinutes         float64 `yaml:"CheckTimeMinutes"`
+	NoProgressTimeoutMinutes float64 `yaml:"NoProgressTimeoutMinutes"`
+	SonarrURL                string  `yaml:"SonarrURL"`
+	SonarrAPIKey             string  `yaml:"SonarrAPIKey"`
+	Blacklist                bool    `yaml:"Blacklist"`
 }
 
 func loadConfigFromDisk() (Config, error) {
