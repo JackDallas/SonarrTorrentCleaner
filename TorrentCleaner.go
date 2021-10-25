@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -125,7 +126,7 @@ func main() {
 										// If the item has not progressed, check how long its been since it has
 										println("No item progress made, checking time changed against timeout")
 										timeSinceMinutes := time.Since(prevQueueItem.LastChecked).Minutes()
-										println("Time since Last Progress %f minutes, Timeout is set to %f", timeSinceMinutes, config.NoProgressTimeoutMinutes)
+										fmt.Printf("Time since Last Progress %f minutes, Timeout is set to %f\n", timeSinceMinutes, config.NoProgressTimeoutMinutes)
 										if timeSinceMinutes > config.NoProgressTimeoutMinutes {
 											println("Item being timed out, removing from queue and blacklisting torrent")
 											config.DeleteFromQueue(currentQueueItem.ID, true)
