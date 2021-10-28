@@ -6,13 +6,14 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var queueEndpoint = "/api/queue"
 
 func (c Config) GetCurrentQueue() (SonarrQueue, error) {
-	println("Getting Queue from Sonarr")
-	println(c.SonarrURL + queueEndpoint)
+	log.Info("Getting Sonarr queue from ", c.SonarrURL+queueEndpoint)
 	req, err := http.NewRequest("GET", c.SonarrURL+queueEndpoint, nil)
 	if err != nil {
 		return SonarrQueue{}, err
@@ -34,7 +35,7 @@ func (c Config) GetCurrentQueue() (SonarrQueue, error) {
 		}
 	}
 
-	println("Decoding Sonarr queue response")
+	log.Info("Decoding Sonarr queue response")
 	var queue SonarrQueue
 	err = json.NewDecoder(res.Body).Decode(&queue)
 	if err != nil {
