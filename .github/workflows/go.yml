@@ -12,8 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ 'windows', 'linux' ]
-        arch: [ 'amd64', 'arm64' ]
+        targets: [ {os : 'windows', arch: 'amd64'}, {os: 'linux', arch: 'arm64' }, {os: 'linux', arch: 'amd64' }]
 
     steps:
     - uses: actions/checkout@v2
@@ -26,5 +25,5 @@ jobs:
 
     - name: Build 
       run: |
-        GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -o SonarrTorrentCleaner_${{ matrix.os }}-${{ matrix.arch }}
+        GOOS=${{ matrix.targets.os }} GOARCH=${{ matrix.targets.arch }} go build -o SonarrTorrentCleaner_${{ matrix.targets.os }}-${{ matrix.targets.arch }}
 
