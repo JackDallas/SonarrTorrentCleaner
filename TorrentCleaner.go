@@ -160,6 +160,9 @@ func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	path = strings.Replace(path, h.webRoot, "", 1)
 
+	// Clean the path to ensure we don't get any unwanted directory traversal.
+	path = filepath.Clean(path)
+
 	// prepend the path with the path to the static directory
 	path = filepath.Join(h.staticPath, path)
 
