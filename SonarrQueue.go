@@ -94,6 +94,7 @@ type SonarrQueueItem struct {
 type SonarrQueueItemDBEntry struct {
 	Item        SonarrQueueItem
 	LastChecked time.Time
+	FirstSeen   time.Time
 }
 
 type SonarrQueueItemDelete struct {

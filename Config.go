@@ -19,6 +19,11 @@ type Config struct {
 	SonarrURL                string  `yaml:"SonarrURL"`
 	SonarrAPIKey             string  `yaml:"SonarrAPIKey"`
 	Blacklist                bool    `yaml:"Blacklist"`
+	WebServer                bool    `yaml:"WebServer"`
+	IgnoreQueued             bool    `yaml:"IgnoreQueued"`
+	WebRoot                  string  `yaml:"WebRoot"`
+	BindIP                   string  `yaml:"BindIP"`
+	BindPort                 string  `yaml:"BindPort"`
 }
 
 func loadConfigFromDisk() (Config, error) {
@@ -44,6 +49,11 @@ func createDefaultConfig() error {
 		SonarrURL:                "http://localhost:8989",
 		SonarrAPIKey:             "",
 		Blacklist:                true,
+		WebServer:                true,
+		IgnoreQueued:             true,
+		WebRoot:                  "",
+		BindIP:                   "127.0.0.1",
+		BindPort:                 "5252",
 	}
 
 	file, err := yaml.Marshal(config)
