@@ -164,11 +164,11 @@ func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path = filepath.Clean(path)
 
 	// prepend the path with the path to the static directory
-	path = filepath.Join(h.staticPath, path)
+	cleanPath := filepath.Join(h.staticPath, path)
 
 	// check whether a file exists at the given path
-	_, err = os.Stat(path)
-	if os.IsNotExist(err) || strings.HasSuffix(path, h.staticPath) {
+	_, err = os.Stat(cleanPath)
+	if os.IsNotExist(err) || strings.HasSuffix(cleanPath, h.staticPath) {
 		// file does not exist, serve index.html
 		// http.ServeFile(w, r, filepath.Join(h.staticPath, h.indexPath))
 		// file does not exist, serve index.html template
@@ -181,7 +181,7 @@ func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.URL.Path = strings.Replace(path, h.staticPath, "", -1)
+	r.URL.Path = strings.Replace(cleanPath, h.staticPath, "", -1)
 	// otherwise, use http.FileServer to serve the static dir
 	http.FileServer(http.Dir(h.staticPath)).ServeHTTP(w, r)
 }
