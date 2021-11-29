@@ -25,5 +25,4 @@ jobs:
 
     - name: Build 
       run: |
-        GOOS=${{ matrix.targets.os }} GOARCH=${{ matrix.targets.arch }} go build -o SonarrTorrentCleaner_${{ matrix.targets.os }}-${{ matrix.targets.arch }}
-
+        GOOS=${{ matrix.targets.os }} GOARCH=${{ matrix.targets.arch }} make

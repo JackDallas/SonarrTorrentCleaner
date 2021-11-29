@@ -1,10 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
+	"net/http"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
 	bolt "go.etcd.io/bbolt"
@@ -12,6 +21,7 @@ import (
 
 var (
 	bucketName = []byte("torrents")
+	indexBytes []byte
 )
 
 func main() {
@@ -47,113 +57,128 @@ func main() {
 		panic(err)
 	}
 
-	log.Info("Starting app loop")
-	for running {
-		log.Info("Processing Queue")
-		queue, err := config.GetCurrentQueue()
+	//
 
-		if err == nil {
-			log.Info("Looping through current queue")
-			//Loop the queue items
-			for _, currentQueueItem := range queue {
-				//Ignore Queued Items
-				if currentQueueItem.Status == "Queued" {
-					continue
-				}
-				// Check its a torrent
-				if currentQueueItem.Protocol == "torrent" {
-					log.Info("Processing Item: " + currentQueueItem.Title + " [" + currentQueueItem.DownloadID + "]")
-					// Parse the itemID to a byte array
-					itemID := []byte(currentQueueItem.DownloadID)
+	go SonarrCheckerLoop(&running, &config, db)
+	if config.WebServer {
+		RunWebServer(db, &config)
+	} else {
+		WaitForCtrlC()
+	}
+}
 
-					if currentQueueItem.Sizeleft == 0 {
-						log.Info("Item is complete, removing from Sonarr")
-						err = config.DeleteFromQueue(currentQueueItem.ID, false)
-						if err != nil {
-							log.Error("Error removing item from Sonarr: " + err.Error())
-							continue
-						}
-					}
-					err = db.Update(func(tx *bolt.Tx) error {
-						// Get the Bucket
-						b := tx.Bucket(bucketName)
-						// Get the item from the bucket
-						prevItem := b.Get(itemID)
-						// if not found, add to db
-						if prevItem == nil {
-							log.Info("Item not in db, adding")
-							// Create a db entry
-							dbItem := SonarrQueueItemDBEntry{
-								Item:        currentQueueItem,
-								LastChecked: time.Now(),
-							}
-							// data bytes to json
-							data, err := json.Marshal(dbItem)
-							if err != nil {
-								log.Error("Error marshalling queue item: " + err.Error())
-							} else {
-								// Add to db
-								tx.Bucket(bucketName).Put(itemID, data)
-							}
-						} else {
-							// If the item is already in our db, unmarshal it
-							var prevQueueItem SonarrQueueItemDBEntry
-							err = json.Unmarshal(prevItem, &prevQueueItem)
-							if err != nil {
-								log.Error("Error un-marshalling queue item: " + err.Error())
-							} else {
-								if currentQueueItem.Sizeleft == 0 {
-									log.Info("Item complete, removing from db")
-									err = config.DeleteFromQueue(currentQueueItem.ID, false)
-									if err != nil {
-										log.Error("Error deleting queue item: " + err.Error())
-									} else {
-										//Delete from db if complete
-										tx.Bucket(bucketName).Delete(itemID)
-									}
-								} else {
-									// Check if the item has progressed
-									if currentQueueItem.Sizeleft > prevQueueItem.Item.Sizeleft {
-										// If the item has progressed, update the db
-										log.Info("Item progress made, updating lastChecked")
-										// Create a db entry
-										dbItem := SonarrQueueItemDBEntry{
-											Item:        currentQueueItem,
-											LastChecked: time.Now(),
-										}
-										data, err := json.Marshal(dbItem)
-										if err != nil {
-											log.Error("Error marshalling queue item: " + err.Error())
-										} else {
-											// Add to db
-											tx.Bucket(bucketName).Put(itemID, data)
-										}
-									} else {
-										// If the item has not progressed, check how long its been since it has
-										log.Info("No item progress made, checking time changed against timeout")
-										timeSinceMinutes := time.Since(prevQueueItem.LastChecked).Minutes()
-										fmt.Printf("Time since Last Progress %f minutes, Timeout is set to %f\n", timeSinceMinutes, config.NoProgressTimeoutMinutes)
-										if timeSinceMinutes > config.NoProgressTimeoutMinutes {
-											log.Info("Item being timed out, removing from queue and blacklisting torrent")
-											config.DeleteFromQueue(currentQueueItem.ID, true)
-											tx.Bucket(bucketName).Delete(itemID)
-										}
-									}
-								}
-							}
-						}
-						return nil
-					})
-					if err != nil {
-						log.Error("Error adding to db: " + err.Error())
-					}
-				}
-			}
-		} else {
-			log.Error("Error getting current queue: " + err.Error())
-		}
-		log.Info("Processing complete, sleeping for ", config.CheckTimeMinutes, " minutes")
-		time.Sleep(time.Minute * time.Duration(config.CheckTimeMinutes))
+//https://jjasonclark.com/waiting_for_ctrl_c_in_golang/
+func WaitForCtrlC() {
+	var end_waiter sync.WaitGroup
+	end_waiter.Add(1)
+	signal_channel := make(chan os.Signal, 1)
+	signal.Notify(signal_channel, os.Interrupt)
+	go func() {
+		<-signal_channel
+		end_waiter.Done()
+	}()
+	end_waiter.Wait()
+}
+
+type IndexTemplates struct {
+	RootPath string
+}
+
+func RunWebServer(db *bolt.DB, config *Config) {
+	tmpl, err := template.ParseFiles("./static/index.html")
+	if err != nil {
+		log.Fatal(err)
 	}
 
+	var ibytes bytes.Buffer
+	err = tmpl.Execute(&ibytes, &IndexTemplates{config.WebRoot})
+	if err != nil {
+		log.Fatal(err)
+	}
+	indexBytes = ibytes.Bytes()
+
+	r := mux.NewRouter()
+	r.HandleFunc("/api/queue", func(w http.ResponseWriter, r *http.Request) {
+		var items []SonarrQueueItemDBEntry
+
+		db.View(func(tx *bolt.Tx) error {
+			// Get the Bucket
+			b := tx.Bucket(bucketName)
+			b.ForEach(func(k, v []byte) error {
+				var item SonarrQueueItemDBEntry
+				json.Unmarshal(v, &item)
+				items = append(items, item)
+				return nil
+			})
+			return nil
+		})
+
+		jsonData, err := json.Marshal(items)
+		if err != nil {
+			log.Error("Error marshalling json")
+			log.Error(err.Error())
+			fmt.Fprintf(w, "error")
+		} else {
+			w.Write(jsonData)
+		}
+	})
+
+	spa := spaHandler{
+		staticPath: "static",
+		indexPath:  "index.html",
+		webRoot:    config.WebRoot,
+	}
+
+	r.PathPrefix("/").Handler(spa)
+	// listen to port
+	srv := &http.Server{
+		Handler: r,
+		Addr:    fmt.Sprintf("%s:%s", config.BindIP, config.BindPort),
+		// Good practice: enforce timeouts for servers you create!
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+	srv.ListenAndServe()
+}
+
+// Shamlessly stolen from mux examples https://github.com/gorilla/mux#examples
+type spaHandler struct {
+	staticPath string
+	indexPath  string
+	webRoot    string
+}
+
+func (h spaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// get the absolute path to prevent directory traversal
+	path, err := filepath.Abs(r.URL.Path)
+	if err != nil {
+		// if we failed to get the absolute path respond with a 400 bad request
+		// and stop
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	path = strings.Replace(path, h.webRoot, "", 1)
+
+	// prepend the path with the path to the static directory
+	path = filepath.Join(h.staticPath, path)
+
+	// check whether a file exists at the given path
+	_, err = os.Stat(path)
+	if os.IsNotExist(err) || strings.HasSuffix(path, h.staticPath) {
+		// file does not exist, serve index.html
+		// http.ServeFile(w, r, filepath.Join(h.staticPath, h.indexPath))
+		// file does not exist, serve index.html template
+		w.Write(indexBytes)
+		return
+	} else if err != nil {
+		// if we got an error (that wasn't that the file doesn't exist) stating the
+		// file, return a 500 internal server error and stop
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	r.URL.Path = strings.Replace(path, h.staticPath, "", -1)
+	// otherwise, use http.FileServer to serve the static dir
+	http.FileServer(http.Dir(h.staticPath)).ServeHTTP(w, r)
 }

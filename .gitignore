@@ -3,3 +3,9 @@ SonarrTorrentCleaner
 *.log
 queue.db
 config.yaml
+
+
+/web/node_modules/
+/web/public/build/
+/web/.DS_Store
+build/

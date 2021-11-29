@@ -3,3 +3,8 @@ NoProgressTimeoutMinutes: 30
 SonarrURL: http://localhost:8989
 SonarrAPIKey: ""
 Blacklist: true
+WebServer: true
+IgnoreQueued: true
+WebRoot: ""
+BindIP: 127.0.0.1
+BindPort: 5252
