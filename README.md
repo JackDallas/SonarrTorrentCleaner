@@ -1,3 +1,5 @@
+# Abandoned: Sorry I don't use a setup that needs this anymore, if anyone want's to start a fork let me know I'll link it here
+
 # Sonarr Torrent Cleaner
 
 Simple executable to remove torrents and optionally blacklist them from Sonarr if they haven't progressed in a set time period
